@@ -9,6 +9,9 @@ sprites.onOverlap(SpriteKind.cannon, SpriteKind.Enemy, function (cannon, enemy) 
     enemy.destroy()
 })
 function upgrade_cannon (cannon: Sprite) {
+    if (info.score() < 100) {
+        return
+    }
     limit = sprites.readDataNumber(cannon, "time_between_fire")
     limit = Math.constrain(limit - 20, 50, 500)
     sprites.setDataNumber(cannon, "time_between_fire", limit)
@@ -33,18 +36,16 @@ function fire (cannon: Sprite) {
     sprites.setDataNumber(cannon, "frames_since_fired", 0)
 }
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (info.score() >= 100) {
-        tile = selector.tilemapLocation()
-        cannons = spriteutils.getSpritesWithin(SpriteKind.cannon, 1, selector)
-        if (tiles.tileAtLocationEquals(tile, assets.tile`placed`)) {
-            info.changeScoreBy(-100)
-            upgrade_cannon(cannons[0])
-        } else {
-            if (item_selected == "cannon") {
-                buy_cannon()
-            } else if (item_selected == "trap") {
-                buy_trap()
-            }
+    tile = selector.tilemapLocation()
+    cannons = spriteutils.getSpritesWithin(SpriteKind.cannon, 1, selector)
+    if (tiles.tileAtLocationEquals(tile, assets.tile`placed`)) {
+        info.changeScoreBy(-100)
+        upgrade_cannon(cannons[0])
+    } else {
+        if (item_selected == "cannon") {
+            buy_cannon()
+        } else if (item_selected == "trap") {
+            buy_trap()
         }
     }
 })
@@ -52,6 +53,9 @@ scene.onOverlapTile(SpriteKind.Enemy, assets.tile`game over`, function (sprite, 
     game.over(false)
 })
 function buy_cannon () {
+    if (info.score() < 100) {
+        return
+    }
     tile = selector.tilemapLocation()
     if (tiles.tileAtLocationEquals(tile, assets.tile`empty`)) {
         cannon = sprites.create(assets.image`cannon`, SpriteKind.cannon)
@@ -74,13 +78,15 @@ sprites.onOverlap(SpriteKind.Enemy, SpriteKind.trap, function (sprite, otherSpri
     }
 })
 function buy_trap () {
-    tile = selector.tilemapLocation()
-    if (tiles.tileAtLocationEquals(tile, assets.tile`empty`)) {
-        trap = sprites.create(assets.image`lava`, SpriteKind.trap)
-        tiles.placeOnTile(trap, tile)
-        tiles.setTileAt(tile, assets.tile`placed`)
-        cannon.z = -1
-        info.changeScoreBy(-50)
+    if (info.score() >= 50) {
+        tile = selector.tilemapLocation()
+        if (tiles.tileAtLocationEquals(tile, assets.tile`empty`)) {
+            trap = sprites.create(assets.image`lava`, SpriteKind.trap)
+            tiles.placeOnTile(trap, tile)
+            tiles.setTileAt(tile, assets.tile`placed`)
+            cannon.z = -1
+            info.changeScoreBy(-50)
+        }
     }
 }
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (cannon_ball, enemy) {
