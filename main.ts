@@ -52,6 +52,11 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 scene.onOverlapTile(SpriteKind.Enemy, assets.tile`game over`, function (sprite, location) {
     game.over(false)
 })
+statusbars.onZero(StatusBarKind.EnemyHealth, function (status) {
+    info.changeScoreBy(100)
+    sprites.destroy(status.spriteAttachedTo())
+    sprites.destroy(status)
+})
 function buy_cannon () {
     if (info.score() < 100) {
         return
@@ -72,10 +77,8 @@ function buy_cannon () {
 sprites.onOverlap(SpriteKind.Enemy, SpriteKind.trap, function (sprite, otherSprite) {
     tiles.setTileAt(otherSprite.tilemapLocation(), assets.tile`empty`)
     sprites.destroy(otherSprite)
-    sprites.changeDataNumberBy(sprite, "hp", -1)
-    if (sprites.readDataNumber(sprite, "hp") < 1) {
-        sprites.destroy(sprite)
-    }
+    bar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, sprite)
+    bar.value += -1
 })
 function buy_trap () {
     if (info.score() >= 50) {
@@ -90,18 +93,19 @@ function buy_trap () {
     }
 }
 sprites.onOverlap(SpriteKind.Projectile, SpriteKind.Enemy, function (cannon_ball, enemy) {
-    sprites.changeDataNumberBy(enemy, "hp", -1)
-    if (sprites.readDataNumber(enemy, "hp") < 1) {
-        enemy.destroy()
-        info.changeScoreBy(100)
-    }
+    bar = statusbars.getStatusBarAttachedTo(StatusBarKind.EnemyHealth, enemy)
+    bar.value += -1
     cannon_ball.destroy()
 })
 function spawn_enemy () {
     enemy = sprites.create(assets.image`ghost`, SpriteKind.Enemy)
     tiles.placeOnRandomTile(enemy, assets.tile`spawn`)
     enemy.vx = -7
-    sprites.setDataNumber(enemy, "hp", health)
+    bar = statusbars.create(16, 4, StatusBarKind.EnemyHealth)
+    bar.max = health
+    bar.value = health
+    bar.setColor(4, 2)
+    bar.attachToSprite(enemy)
     timer.after(spawn_frequency, function () {
         spawn_enemy()
     })
@@ -125,6 +129,7 @@ let count = 0
 let level_text: TextSprite = null
 let enemy: Sprite = null
 let trap: Sprite = null
+let bar: StatusBarSprite = null
 let cannon: Sprite = null
 let cannons: Sprite[] = []
 let tile: tiles.Location = null
@@ -145,7 +150,9 @@ selector.setStayInScreen(true)
 selector.z = 5
 grid.snap(selector)
 grid.moveWithButtons(selector)
-spawn_enemy()
+timer.after(100, function () {
+    spawn_enemy()
+})
 game.onUpdate(function () {
     fire_control()
 })
